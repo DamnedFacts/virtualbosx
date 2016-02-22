@@ -3,6 +3,8 @@ A HOWTO on installing OS X as a guest on VirtualBox
 
 This document generally describes a straightforward way of creating a bootable disk image of the OS X installer. **The script in this repository aims to follow these steps easily, in one step.**
 
+It may be in the future Oracle will better support OS X as a guest OS by removing the need to go through these hoops, and also including guest additions. *So, that brings up an important point: there are no official OS X guest additions. Your OS X VM will run with bare minimum hardware and graphics support! However, it is good enough.*
+
 # Step 1: Create an installer DMG
 Most steps I've found for creating a bootable disk for the OS X installer involve a whole lot of complicated copying of files to different directories and images. There is actually a far more straightforward technique, and some technical gotchas.
 
