@@ -25,10 +25,13 @@ Once that completes we use the 'find' to look for any file inodes on our install
 # Step 3: Turn on verbose booting
 Penultimately, a plist file `com.apple.Boot.plist` on the installer image needs to be edited to add a '-v' kernel flag to force the OS X installer to boot in verbose mode. Not doing this makes the booting installer disk attempt some sort of EFI graphics detection which fails on VirtualBox with an obscure "Guru Mediation" error. Verbose booting avoids this. This uses Apple's `plutil`.
 
-# Step 4: Make a VirtualBox VM for OS X
-Lastly, create an OS X virtual machine in VirtualBox. This step can be done using the VirtualBox GUI, or, using the VBoxManage  command-line utility (as this script uses). We create a 'raw' VMDK file for our DMG. This does not convert our DMG into a VMDK but creates a 'shim' disk image that maps to our DMG (which, again, is really just a raw disk image). You'll need to keep both the DMG and VMDK (the latter of which is tiny in size, as it is just a text document):
+# Step 4: Prepare VirtualBox for OS X
+
+We create a 'raw' VMDK disk image type to connect our installer disk to our VirtualBox VM. This does not convert our DMG into a VMDK but creates a 'shim' disk image that maps to our DMG (which, again, is really just a raw disk image). You'll need to keep both the DMG and VMDK (the latter of which is tiny in size, as it is just a text document):
 
 `VBoxManage internalcommands createrawvmdk -filename "~/Desktop/osx-installer.vmdk" -rawdisk "~/Desktop/osx-installer.dmg"`
+
+Lastly, create an OS X virtual machine in VirtualBox. This step can be done using the VirtualBox GUI, or, using the `VBoxManage`  command-line utility (as this script uses).
 
 ## Step 4a: Requirements (or, non-obvious technical "gotchas"):
  * **Enable:** Extended Features: "Enable EFI"
