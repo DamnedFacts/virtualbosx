@@ -28,7 +28,7 @@ Lastly, create an OS X virtual machine in VirtualBox. This step can be done usin
 
 `VBoxManage internalcommands createrawvmdk -filename "~/Desktop/osx-installer.vmdk" -rawdisk "~/Desktop/osx-installer.dmg"`
 
-## Requirements (or, non-obvious technical "gotchas"):
+## Step 4a: Requirements (or, non-obvious technical "gotchas"):
  * **Enable:** Extended Features: "Enable EFI"
  * **Choose:** Chipset: PIIX3 (ICH9 fails inexplicably with EFI enabled and more than 2GB of RAM)
  * **Attach:** Installer disk image must be attached as SATA port 0 or 1, only, or else the EFI won't see the disk.
