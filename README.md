@@ -1,7 +1,7 @@
 # virtualbosx
 A HOWTO on installing OS X as a guest on VirtualBox
 
-This document generally describes a straightforward way of creating a bootable disk image of the OS X installer. The script in this repository aims to follow these steps easily, in one step.
+This document generally describes a straightforward way of creating a bootable disk image of the OS X installer. **The script in this repository aims to follow these steps easily, in one step.**
 
 # Step 1: Create an installer DMG
 Most steps I've found for creating a bootable disk for the OS X installer involve a whole lot of complicated copying of files to different directories and images. There is actually a far more straightforward technique, and some technical gotchas.
