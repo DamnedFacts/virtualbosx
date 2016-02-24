@@ -29,33 +29,49 @@
 OSX_TYPE="MacOS1011_64"
 OSX_INSTALLER_APP="/Applications/Install OS X El Capitan.app"
 OSX_CREATE_CMD=${OSX_INSTALLER_APP}/Contents/Resources/createinstallmedia
-VM_NAME="OS X"
+VM_NAME="OS X 2"
 VM_INSTALLER_DMG=$HOME/Desktop/osx_install.dmg
 VM_INSTALLER_VMDK=$HOME/Desktop/osx_install.vmdk
 #########################
 #########################
 
 ##
-tput sgr0; tput setaf 4; tput bold; echo "Step 1: Create a blank, 8GB disk image."; tput sgr0
+tput sgr0; tput setaf 141; tput bold; echo "Step 1: Create a blank, 8GB disk image."; tput sgr0
 DMG_CREATE_OUTPUT=`hdiutil create -attach -size 8GB -type UDIF -layout MBRSPUD -fs HFS+ -volname Untitled ${VM_INSTALLER_DMG}`
 DMG_MNT_PATH=`echo "${DMG_CREATE_OUTPUT}" | awk '/\/Volumes\//{ print $3 }'`
 DMG_DEV_PATH=`echo "${DMG_CREATE_OUTPUT}" | awk '/\/Volumes\//{ print $1 }'`
-echo
+
+tput sgr0; tput setaf 4; tput bold; 
+echo "Disk image is located at ${VM_INSTALLER_DMG} and mounted on ${DMG_MNT_PATH} (${DMG_DEV_PATH})"
+tput sgr0 
 
 ##
-tput sgr0; tput setaf 4; tput bold; echo "Step 2: Create the bootable installer using this mounted disk image."; tput sgr0
+echo
+tput sgr0; tput setaf 141; tput bold;
+echo "Step 2: Create the bootable installer using this mounted disk image."; 
+tput sgr0
 if [ -d "${DMG_MNT_PATH}" ]; then
+    tput sgr0; tput setaf 4; tput bold; 
+    echo "Your user password may be needed for sudo to run the 'createinstallmedia' command."
+    tput sgr0 
+
     sudo "${OSX_CREATE_CMD}" --volume "${DMG_MNT_PATH}" --applicationpath "${OSX_INSTALLER_APP}"
-    
+    echo 
+
+    tput sgr0; tput setaf 4; tput bold; 
+    echo "Disk image ${VM_INSTALLER_DMG}, mounted on ${DMG_MNT_PATH} (${DMG_DEV_PATH}) now mounted "
     DMG_MNT_PATH=`diskutil info "${DMG_DEV_PATH}" | awk 'BEGIN { FS = ":[ ]+" } /Mount Point/{ print $2 }'`
+    echo "as ${DMG_MNT_PATH}."
+    tput sgr0;
+
     # VirtualBox's EFI implementation doesn't read HFS inodes with more than one 
     # hard link (they appear as zero-length files). This de-couples the hard links.
-    find "${DMG_MNT_PATH}" -type f -links +1 \( -exec cp -p {} {}.tmp \; -false -o -exec mv -f {}.tmp {} \; \)
+    find "${DMG_MNT_PATH}" -type f -links +1 \( -exec cp -p {} {}.tmp \; -false -o -exec mv -f {}.tmp {} \; \) &> /dev/null
+
 else
     echo exit
 fi
 
-echo
 # VirtualBox will fail into some odd 'Guru Mode' if we boot the installer 
 # without verbose mode enabled. It seems it is failing on some aspect of video.
 # Regardless, add '-v' to kernel flag allows it to boot properly.
@@ -65,10 +81,15 @@ defaults write "${DMG_MNT_PATH}/Library/Preferences/SystemConfiguration/com.appl
 plutil -convert xml1 "${DMG_MNT_PATH}/Library/Preferences/SystemConfiguration/com.apple.Boot.plist"
 
 # Unmount and detach the OS X Installer disk image
-hdiutil detach ${DMG_DEV_PATH}
+hdiutil detach ${DMG_DEV_PATH} &> /dev/null
+
+tput sgr0; tput setaf 4; tput bold; 
+echo "Disk image ${VM_INSTALLER_DMG} mounted on ${DMG_MNT_PATH} has been unmounted."
+tput sgr0;
 
 ##
-tput sgr0; tput setaf 4; tput bold; echo "Step 3: Create a VirtualBox VM with this disk image attached."; tput sgr0
+echo
+tput sgr0; tput setaf 141; tput bold; echo "Step 3: Create a VirtualBox VM with this disk image attached."; tput sgr0
 VM_CREATE_OUTPUT=`VBoxManage createvm --name "${VM_NAME}" --ostype ${OSX_TYPE}`
 VM_FILE=`echo "${VM_CREATE_OUTPUT}" | awk -F': ' '/Settings file:/{ print $2 }' | sed s/\'//g`
 VM_UUID=`echo "${VM_CREATE_OUTPUT}" | awk -F': ' '/UUID:/{ print $2 }'`
@@ -79,7 +100,9 @@ if [ "${VM_UUID}" != "" ]; then
     VBoxManage modifyvm ${VM_UUID} --chipset piix3 --firmware efi --memory 4096 --rtcuseutc on --vram 32 --mouse usb --keyboard usb
 
     # A VMDK shim used to map to the raw disk DMG file.
+    tput sgr0; tput setaf 4; tput bold; 
     VBoxManage internalcommands createrawvmdk -filename "${VM_INSTALLER_VMDK}" -rawdisk "${VM_INSTALLER_DMG}"
+    tput sgr0
 
     # Add a storage controller
     VBoxManage storagectl ${VM_UUID} --name "SATA" --add "sata"
@@ -89,7 +112,9 @@ if [ "${VM_UUID}" != "" ]; then
 
     VBoxManage setextradata ${VM_UUID} VBoxInternal2/EfiGopMode 5
 
-    VBoxManage setextradata ${VM_UUID} "VBoxInternal/Devices/efi/0/Config/DmiSystemSerial" `system_profiler SPHardwareDataType | awk '/Serial/ {print $4}'`
+    VBoxManage setextradata ${VM_UUID} "VBoxInternal/Devices/efi/0/Config/DmiSystemSerial" \
+        `system_profiler SPHardwareDataType | awk '/Serial/ {print $4}'`
+    VBoxManage setextradata ${VM_UUID} "VBoxInternal2/EfiBootArgs" "-v"
 else
     echo "Making a VirtualBox VM failed."
     exit
