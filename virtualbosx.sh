@@ -29,11 +29,22 @@
 OSX_TYPE="MacOS1011_64"
 OSX_INSTALLER_APP="/Applications/Install OS X El Capitan.app"
 OSX_CREATE_CMD=${OSX_INSTALLER_APP}/Contents/Resources/createinstallmedia
-VM_NAME="OS X 2"
+VM_NAME="OS X"
 VM_INSTALLER_DMG=$HOME/Desktop/osx_install.dmg
 VM_INSTALLER_VMDK=$HOME/Desktop/osx_install.vmdk
+VM_VBOX_CMD=/usr/local/bin/VBoxManage
 #########################
 #########################
+
+if [ ! -x "${OSX_INSTALLER_APP}/Contents/Resources/createinstallmedia" ]; then
+    echo "Error: Missing 'createinstallmedia' command. Make sure the OS X installer is downloaded from the Mac App Store."
+    exit 1
+fi
+
+if [ ! -x "${VM_VBOX_CMD}" ]; then
+    echo "Error: The command 'VBoxManage' is missing. Is VirtualBox installed?"
+    exit 1
+fi
 
 ##
 tput sgr0; tput setaf 141; tput bold; echo "Step 1: Create a blank, 8GB disk image."; tput sgr0
@@ -94,27 +105,28 @@ VM_CREATE_OUTPUT=`VBoxManage createvm --name "${VM_NAME}" --ostype ${OSX_TYPE}`
 VM_FILE=`echo "${VM_CREATE_OUTPUT}" | awk -F': ' '/Settings file:/{ print $2 }' | sed s/\'//g`
 VM_UUID=`echo "${VM_CREATE_OUTPUT}" | awk -F': ' '/UUID:/{ print $2 }'`
 if [ "${VM_UUID}" != "" ]; then
-    VBoxManage registervm "${VM_FILE}"
+    ${VM_VBOX_CMD} registervm "${VM_FILE}"
 
     # Set to EFI mode, and PXII3 chipset as ICH3 crashes with EFI and above 2GB of RAM. 
-    VBoxManage modifyvm ${VM_UUID} --chipset piix3 --firmware efi --memory 4096 --rtcuseutc on --vram 32 --mouse usb --keyboard usb
+    ${VM_VBOX_CMD} modifyvm ${VM_UUID} --chipset piix3 --firmware efi --memory 4096 --rtcuseutc on --vram 32 --mouse usb --keyboard usb
 
     # A VMDK shim used to map to the raw disk DMG file.
     tput sgr0; tput setaf 4; tput bold; 
-    VBoxManage internalcommands createrawvmdk -filename "${VM_INSTALLER_VMDK}" -rawdisk "${VM_INSTALLER_DMG}"
+    ${VM_VBOX_CMD} internalcommands createrawvmdk -filename "${VM_INSTALLER_VMDK}" -rawdisk "${VM_INSTALLER_DMG}"
     tput sgr0
 
     # Add a storage controller
-    VBoxManage storagectl ${VM_UUID} --name "SATA" --add "sata"
+    ${VM_VBOX_CMD} storagectl ${VM_UUID} --name "SATA" --add "sata"
 
     # Must be attached to SATA ports 0 or 1 (2 or greater, EFI will not map it)
-    VBoxManage storageattach ${VM_UUID} --storagectl "SATA" --port 0 --medium "${VM_INSTALLER_VMDK}" --type hdd
+    ${VM_VBOX_CMD} storageattach ${VM_UUID} --storagectl "SATA" --port 0 --medium "${VM_INSTALLER_VMDK}" --type hdd
 
-    VBoxManage setextradata ${VM_UUID} VBoxInternal2/EfiGopMode 5
+    ${VM_VBOX_CMD} setextradata ${VM_UUID} VBoxInternal2/EfiGopMode 5
 
-    VBoxManage setextradata ${VM_UUID} "VBoxInternal/Devices/efi/0/Config/DmiSystemSerial" \
+
+    ${VM_VBOX_CMD} setextradata ${VM_UUID} "VBoxInternal/Devices/efi/0/Config/DmiSystemSerial" \
         `system_profiler SPHardwareDataType | awk '/Serial/ {print $4}'`
-    VBoxManage setextradata ${VM_UUID} "VBoxInternal2/EfiBootArgs" "-v"
+    ${VM_VBOX_CMD} setextradata ${VM_UUID} "VBoxInternal2/EfiBootArgs" "-v"
 else
     echo "Making a VirtualBox VM failed."
     exit
